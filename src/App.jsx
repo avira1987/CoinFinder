@@ -6,14 +6,26 @@ import CoinTable from './components/CoinTable';
 import PriceChart from './components/PriceChart';
 import VolumeChart from './components/VolumeChart';
 import CoinCard from './components/CoinCard';
-import { FiRefreshCw, FiAlertCircle } from 'react-icons/fi';
+import LogPanel from './components/LogPanel';
+import { FiRefreshCw, FiAlertCircle, FiList, FiPlay, FiPause, FiSquare } from 'react-icons/fi';
 import { refreshApiClient } from './services/api';
 
 function App() {
   const { filters, updateFilters, resetFilters } = useFilters();
-  const { rankedCoins, loading, error, lastUpdate, refetch } = useCoinData(filters, 500);
+  const { 
+    rankedCoins, 
+    loading, 
+    error, 
+    lastUpdate, 
+    isMonitoring,
+    refetch, 
+    startMonitoring, 
+    stopMonitoring, 
+    endMonitoring 
+  } = useCoinData(filters, 500);
   const [selectedCoin, setSelectedCoin] = useState(null);
   const [apiKeyChanged, setApiKeyChanged] = useState(0);
+  const [isLogPanelOpen, setIsLogPanelOpen] = useState(false);
 
   const handleFiltersChange = (newFilters) => {
     updateFilters(newFilters);
@@ -55,20 +67,66 @@ function App() {
             سیستم تحلیل و رتبه‌بندی رمزارزها بر اساس رفتار غیرعادی
           </p>
           
-          <div className="flex items-center justify-center gap-4 mt-4">
-            <button
-              onClick={refetch}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
-            >
-              <FiRefreshCw className={loading ? 'animate-spin' : ''} />
-              به‌روزرسانی
-            </button>
-            {lastUpdate && (
-              <div className="text-sm text-gray-400">
-                آخرین به‌روزرسانی: {formatTime(lastUpdate)}
+          <div className="flex flex-col items-center gap-4 mt-4">
+            {/* کنترل‌های پایش */}
+            <div className="flex items-center gap-3 p-3 bg-slate-800 rounded-lg border border-slate-700">
+              <span className="text-sm text-gray-400">وضعیت پایش:</span>
+              <div className="flex items-center gap-2">
+                <div className={`w-3 h-3 rounded-full ${isMonitoring ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}></div>
+                <span className="text-sm text-white">
+                  {isMonitoring ? 'در حال پایش' : 'متوقف'}
+                </span>
               </div>
-            )}
+              <div className="h-4 w-px bg-slate-600"></div>
+              <button
+                onClick={startMonitoring}
+                disabled={isMonitoring || loading}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm"
+              >
+                <FiPlay />
+                شروع پایش
+              </button>
+              <button
+                onClick={stopMonitoring}
+                disabled={!isMonitoring || loading}
+                className="flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm"
+              >
+                <FiPause />
+                توقف
+              </button>
+              <button
+                onClick={endMonitoring}
+                disabled={!isMonitoring && !lastUpdate}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm"
+              >
+                <FiSquare />
+                پایان پایش
+              </button>
+            </div>
+
+            {/* دکمه‌های دیگر */}
+            <div className="flex items-center justify-center gap-4">
+              <button
+                onClick={refetch}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+              >
+                <FiRefreshCw className={loading ? 'animate-spin' : ''} />
+                به‌روزرسانی
+              </button>
+              <button
+                onClick={() => setIsLogPanelOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+              >
+                <FiList />
+                نمایش لاگ‌ها
+              </button>
+              {lastUpdate && (
+                <div className="text-sm text-gray-400">
+                  آخرین به‌روزرسانی: {formatTime(lastUpdate)}
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -149,6 +207,9 @@ function App() {
           <p>CoinFinder - تحلیل و رتبه‌بندی رمزارزها با استفاده از CoinMarketCap API</p>
         </footer>
       </div>
+
+      {/* Log Panel */}
+      <LogPanel isOpen={isLogPanelOpen} onClose={() => setIsLogPanelOpen(false)} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import requestLogger from './requestLogger';
 
 const BASE_URL = 'https://pro-api.coinmarketcap.com/v1';
 
@@ -13,17 +14,51 @@ const getApiKey = () => {
   return import.meta.env.VITE_COINMARKETCAP_API_KEY || '';
 };
 
-// ایجاد apiClient با قابلیت به‌روزرسانی header
+// ایجاد apiClient با قابلیت به‌روزرسانی header و interceptors
 const createApiClient = () => {
   const apiKey = getApiKey();
   
-  return axios.create({
+  const client = axios.create({
     baseURL: BASE_URL,
     headers: {
       'X-CMC_PRO_API_KEY': apiKey,
       'Accept': 'application/json',
     },
+    timeout: 30000, // 30 ثانیه timeout
   });
+
+  // Request interceptor برای ثبت درخواست‌ها
+  client.interceptors.request.use(
+    (config) => {
+      // ثبت زمان شروع برای محاسبه مدت زمان
+      config.metadata = { startTime: Date.now() };
+      
+      // ثبت درخواست در لاگر
+      requestLogger.logRequest(config);
+      
+      return config;
+    },
+    (error) => {
+      requestLogger.logError(error);
+      return Promise.reject(error);
+    }
+  );
+
+  // Response interceptor برای ثبت پاسخ‌ها
+  client.interceptors.response.use(
+    (response) => {
+      // ثبت پاسخ موفق
+      requestLogger.logResponse(response);
+      return response;
+    },
+    (error) => {
+      // ثبت خطا
+      requestLogger.logError(error);
+      return Promise.reject(error);
+    }
+  );
+
+  return client;
 };
 
 // تابع برای به‌روزرسانی API Key در client
